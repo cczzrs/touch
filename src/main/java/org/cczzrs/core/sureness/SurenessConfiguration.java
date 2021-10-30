@@ -63,7 +63,7 @@ public class SurenessConfiguration {
             // "GM2RIqcBIp6-?::4390fsf4sdl6opf)4ZI:tdQMtcQQ14pkOAQdQ546";
 
     @Bean
-    ProcessorManager processorManager(Object usersService) {// 处理器Processor初始化
+    ProcessorManager processorManager() { // Object usersService) { // 处理器Processor初始化
         List<Processor> processorList = new LinkedList<>();
         // 使用了默认的支持NoneSubject的处理器NoneProcessor 
         // NoneProcessor noneProcessor = new NoneProcessor();
@@ -84,11 +84,11 @@ public class SurenessConfiguration {
         // processorList.add(customTokenProcessor);
         
         // 使用自定义 JWT [Token] 认证的处理器 MyJwtSubject.processor 继承自 JwtProcessor
-        processorList.add(MyJwtSubject.processor(usersService));
+        processorList.add(MyJwtSubject.processor()); // usersService));
         return new DefaultProcessorManager(processorList);
     }
     @Bean("databasePathTreeProvider")
-    PathTreeProvider uriAuthConfig(Object authResourceService){
+    PathTreeProvider uriAuthConfig(){ // Object authResourceService){
         return new PathTreeProvider() {
             /**
              * @fileName DatabasePathTreeProvider.java
@@ -107,7 +107,7 @@ public class SurenessConfiguration {
                 // me.groupByClause = "ars.ID";
                 // return SurenessCommonUtil.attachContextPath(getContextPath(), authResourceService.findsBy(me).stream().map(r -> String.valueOf(r.get("uri"))+"==="+String.valueOf(r.get("method"))+"==="+String.valueOf(r.get("roles"))).collect(Collectors.toSet()));
                 Set<String> set = new HashSet<>();
-                set.add("/api/v2/host===post===[role1,role5]");
+                // set.add("/api/v2/host===post===[role1,role5]");
                 set.add("/users/*===get===[role2,role3,role4]");
                 return set;
             }

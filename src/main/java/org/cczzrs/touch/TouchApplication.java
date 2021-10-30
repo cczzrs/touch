@@ -3,8 +3,12 @@ package org.cczzrs.touch;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.ServletComponentScan;
+import org.springframework.context.annotation.ComponentScan;
 
-@ServletComponentScan({"org.cczzrs.core","org.cczzrs.touch"})
+// @ComponentScan("org.cczzrs")
+@ComponentScan({"org.cczzrs.core","org.cczzrs.touch"})
+@ServletComponentScan({"org.cczzrs.touch"})
+// @ServletComponentScan({"org.cczzrs.core.sureness","org.cczzrs.touch"}) // 注册安全框架-sureness
 @SpringBootApplication
 public class TouchApplication {
 

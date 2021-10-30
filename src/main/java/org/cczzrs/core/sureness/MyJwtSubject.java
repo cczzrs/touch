@@ -102,6 +102,8 @@ public class MyJwtSubject implements Subject {
         if (context instanceof HttpServletRequest) {
             String authorization = ((HttpServletRequest)context).getHeader(SurenessConstant.AUTHORIZATION);
             if (authorization==null || "".equals(authorization)) {
+                return null;
+            } else {
                 return authorization.trim();
             }
         }
@@ -167,7 +169,7 @@ public class MyJwtSubject implements Subject {
      * @description 定制 JWT 处理逻辑
      *  自定义 JWT [Token] 认证的处理器 MyJwtProcessor， 继承自 JwtProcessor
      *  */
-    public static JwtProcessor processor(Object usersService){
+    public static JwtProcessor processor(){ // Object usersService){
         return new JwtProcessor () {
             @Override
             public boolean canSupportSubjectClass(Class<?> var) {

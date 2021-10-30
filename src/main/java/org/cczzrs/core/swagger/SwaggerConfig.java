@@ -44,7 +44,7 @@ public class SwaggerConfig{ // extends WebMvcConfigurerAdapter {
                 // apiInfo：添加api详情信息，参数为ApiInfo类型的参数，这个参数包含了第二部分的所有信息
                 .apiInfo(apiInfo()).select()
                 // apis： 添加过滤条件,
-                .apis(RequestHandlerSelectors.basePackage("com.hbtz.zhzf.controller"))
+                .apis(RequestHandlerSelectors.basePackage("org.cczzrs.touch.controller"))
                 // .paths(PathSelectors.any())
                 // paths： 这里是控制哪些路径的api会被显示出来，比如下方的参数就是除了/user以外的其它路径都会生成api文档
                 // .paths((String a) -> !"/user".equals(a))
@@ -52,13 +52,13 @@ public class SwaggerConfig{ // extends WebMvcConfigurerAdapter {
     }
 
     private ApiInfo apiInfo() {
-        return new ApiInfo("综合执法平台项目2.0接口API", // 标题
-                "综合执法平台项目接口API：web和小程序（webApp）端后台接口", // 描述
-                "版本内容：v2.0", // 版本
-                "组织：https://gitee.com/HBtzfl", // 组织链接
-                new Contact("CCZZRS", "https://fazhi365.net/", "1161717099@qq.com"), // 联系人信息
+        return new ApiInfo("TOUCH", // 标题
+                "触碰1.0接口API", // 描述
+                "版本内容：v1.0", // 版本
+                "组织：https://gitee.com/cczzrs", // 组织链接
+                new Contact("CCZZRS", "https://0-0.cc/", "1161717099@qq.com"), // 联系人信息
                 "许可：Apach 2.0 ", // 许可
-                "许可链接：https://gitee.com/HBtzfl", // 许可连接
+                "许可链接：https://gitee.com/cczzrs", // 许可连接
                 Arrays.asList(new StringVendorExtension("CCZZRS", "13461346384"))// 扩展
         );
     }

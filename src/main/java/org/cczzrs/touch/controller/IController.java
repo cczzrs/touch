@@ -1,6 +1,5 @@
 package org.cczzrs.touch.controller;
 
-
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -9,7 +8,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.usthe.sureness.util.JsonWebTokenUtil;
 
 import org.cczzrs.core.constant.ProjectConstant.ROLE;
-import org.cczzrs.core.log.WebLog;
 import org.cczzrs.core.redis.CacheUtil;
 import org.cczzrs.core.sureness.MyJwtSubject;
 import org.cczzrs.core.utils.MyUtil;
@@ -27,6 +25,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import io.jsonwebtoken.Claims;
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
 /**
@@ -45,10 +44,10 @@ import io.swagger.annotations.ApiOperation;
  *
  */
 
-// @Api(value = "测试swagger", description = "测试swagger api")
+@Api(value = "测试swagger", description = "测试swagger api")
 @RestController
 @RequestMapping("/i")
-public abstract class IController {
+public class IController {
 
     @Resource
     CacheUtil cacheUtil;
@@ -66,6 +65,7 @@ public abstract class IController {
      * @return HttpServletRequest
      */
     public static HttpServletRequest getRequest() {
+        // ID = HTTPUtil.get("receive", "core"); // 获取核心的ID，以定位自己的位置
         return ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
     }
     /**
@@ -201,7 +201,6 @@ public abstract class IController {
      * @return PageInfo<T>
      */
     @GetMapping("")
-    @WebLog(description = "【批量查询】")
     @ApiOperation(value = "【批量查询】", notes = "get")
     public IResult<?> get(String t, @RequestParam(required = false, defaultValue = "1") int pageNum,
             @RequestParam(required = false, defaultValue = "10") int pageSize) {
@@ -215,7 +214,6 @@ public abstract class IController {
      * @return T
      */
     @GetMapping("/{id}")
-    @WebLog(description = "【单个查询】")
     @ApiOperation(value = "【单个查询】", notes = "get")
     public IResult<?> getBy(@PathVariable("id") String id) {
         return IResult.Generator.genSuccessResult("ID:"+id);
@@ -228,7 +226,6 @@ public abstract class IController {
      */
     @Transactional
     @PostMapping("")
-    @WebLog(description = "【新增】")
     @ApiOperation(value = "【新增】", notes = "post")
     public IResult<String> post(String t) {
         return genSuccessResult();
@@ -241,7 +238,6 @@ public abstract class IController {
      */
     @Transactional
     @PutMapping("")
-    @WebLog(description = "【更新】")
     @ApiOperation(value = "【更新】", notes = "put")
     public IResult<String> postBy(String t) {
         return genSuccessResult();
@@ -254,9 +250,8 @@ public abstract class IController {
      * @return int
      */
     @DeleteMapping("")
-    @WebLog(description = "【删除】")
     @ApiOperation(value = "【删除】", notes = "delete")
-    public IResult<String> deleteBy(String id) {
-        return IResult.Generator.genResult(IResult.Code.SUCCESS,"","ID:"+id);
+    public IResult<?> deleteBy(String id) {
+        return genSuccessResult().setData("ID:"+id);
     }
 }
