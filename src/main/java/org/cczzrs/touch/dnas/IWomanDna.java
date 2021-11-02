@@ -3,7 +3,7 @@ package org.cczzrs.touch.dnas;
 import com.alibaba.fastjson.JSONObject;
 
 /**
- * dna母辈基础类
+ * dna雌性基础类
  */
 public class IWomanDna extends IDna {
 

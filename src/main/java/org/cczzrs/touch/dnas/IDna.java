@@ -1,19 +1,23 @@
 package org.cczzrs.touch.dnas;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
 import org.apache.tomcat.util.security.MD5Encoder;
 import org.cczzrs.touch.IRegistry;
-import org.cczzrs.touch.IRegistry.CallBack;
+import org.cczzrs.touch.IRegistry.Pipeline;
 
 /**
  * dna基础类
  */
 public class IDna {
+    /**全局待否定，紧急刹车控制*/
+    public static boolean _GlobalNegation = true;
     
     /**
      * 云加载DB（主导数据）
@@ -22,48 +26,68 @@ public class IDna {
         _ID = MD5Encoder.encode(db.toJSONString().getBytes()); // 获取核心的ID，以定位自己的位置
         _CODE = db.getDoubleValue("code"); // 获取当前节点权重值
         _CODE_LS = db.getDoubleValue("code_ls"); // 获取当前节点临时权重值
-        // 注册 连接到自己的位置
-        _PIDS = db.getJSONArray("pid").toJavaList(String.class);
-        IRegistry.init(_ID, buildCallBack(), new HashSet<String>(_PIDS));
+        _PIDS = db.getJSONArray("pids").toJavaList(String.class);// 需连接到的位置（所有上级节点）
         dominant = new Dominant(db.getJSONObject("dominant")); // 初始化显性基因对象
         recessive = new Recessive(db.getJSONObject("recessive")); // 初始化隐性基因对象
+        IRegistry.init(_ID, buildPipeline(), new HashSet<String>(_PIDS));// 注册 连接到自己的位置
     }
     protected List<String> _PIDS = null;
-    protected CallBack<IDna> _buildCallBack = null;
+    protected Pipeline<IDna> _buildPipeline = null;
     /**
      * 所有上级节点
      */
-    public CallBack<IDna> buildCallBack() {
-        if(_buildCallBack==null){
-            _buildCallBack = new CallBack<IDna>(){
-                /**
-                 * 当前下级所有节点（传递处理好的数据）
-                 */
-                List<CallBack<?>> weis = new ArrayList<>();
+    public Pipeline<IDna> buildPipeline() {
+        if(_buildPipeline==null){
+            _buildPipeline = new Pipeline<IDna>(){
+                /**当前下级所有节点（传递处理好的数据）*/
+                List<Pipeline<?>> weis = new ArrayList<>();
+                /**当前下级所有节点*/
                 @Override
-                public List<CallBack<?>> weis() {
+                public List<Pipeline<?>> weis() {
                     return weis;
                 }
                 /**
                  * 接收上级节点的数据传递
                  */
                 @Override
-                public ret wai(String id, String db) {
+                public Ret wai(String id, JSONObject db) {
                     if(!_PIDS.contains(id)){ // 未知连接节点
                         // Registry.whereIs(_ID, id, db);// 上报到注册中心，
                         if(!pgBoolean(IRegistry.whereIs(_ID, id, db))){
-                            return ret.b(_CODE - _CODE_LS);
+                            return Ret.b(_ID, _CODE - _CODE_LS);
                         }
                     }
-                    ODB.put(id, db);
-                    return ret.b(_CODE);
+                    ODB_puts(id, db);
+                    return Ret.b(_ID, _CODE + _CODE_LS);
                 }
             };
         }
-        return _buildCallBack;
+        return _buildPipeline;
     }
 
-    protected boolean pgBoolean(ret r) {
+    /**
+     * 保存接收的数据到 原数据 的集合中
+     * @param key
+     * @param db
+     */
+    protected void ODB_puts(String key, JSONObject... db) {
+        if(ODB.containsKey(key)) {
+            ODB.getJSONArray(key).addAll(Arrays.asList(db));
+        } else {
+            // ODB.put(key, Arrays.asList(db));
+            ODB.put(key, JSONArray.parseArray(JSONArray.toJSONString(db)));
+        }
+    }
+    protected JSONArray ODB_gets(String key) {
+        return ODB.getJSONArray(key);
+    }
+
+    /**
+     * 评估决策 是或否
+     * @param r
+     * @return
+     */
+    protected boolean pgBoolean(Ret r) {
         return pg(r).code > _CODE;
     }
     /**
@@ -71,8 +95,8 @@ public class IDna {
      * @param r
      * @return
      */
-    protected ret pg(ret r) {
-        return ret.b(_CODE + _CODE_LS);
+    protected Ret pg(Ret r) {
+        return Ret.b(_ID, _CODE + _CODE_LS);
     }
     /**
      * 数据ID，数据位置
@@ -87,26 +111,22 @@ public class IDna {
      */
     public double _CODE_LS;
     /**
-     * 全局否定，紧急刹车控制
-     */
-    public static boolean _GlobalNegation = true;
-    /**
      * 原数据（输入）
      */
-    public static JSONObject ODB = new JSONObject();
+    private JSONObject ODB = new JSONObject();
     /**
      * 构建数据（处理）
      */
-    public static JSONObject BuildDB = new JSONObject();
+    protected JSONObject BuildDB = new JSONObject();
     
     /**
      * 显性基因对象
      */
-    public Dominant dominant;
+    protected final Dominant dominant;
     /**
      * 隐性基因对象
      */
-    public Recessive recessive;
+    protected final Recessive recessive;
 
     /**
      * 显性基因类
@@ -116,9 +136,13 @@ public class IDna {
          * 云加载DB，主要提供给behavior等其他函数作为主导数据
          */
         public Dominant(JSONObject db){
-            
+            _CODE = db.getDoubleValue("key");
         }
         
+        /**权重值*/
+        public final double _CODE;
+        /**临时权重值*/
+        public double _CODE_LS;
     }
     /**
      * 隐性基因类
@@ -128,18 +152,22 @@ public class IDna {
          * 云加载DB，主要提供给behavior等其他函数作为主导数据
          */
         public Recessive(JSONObject db){
-            
+            _CODE = db.getDoubleValue("key");
         }
         
+        /**权重值*/
+        public final double _CODE;
+        /**临时权重值*/
+        public double _CODE_LS;
     }
 
     /**
-     * 行为（习性）
+     * 行为（习性） TODO
      * @param db
      * @return
      */
     public String behavior(String db) {
-        nextNode(db);
+        submitNextNodes();
         return "";
     }
     /**
@@ -147,77 +175,78 @@ public class IDna {
      * @param db
      * @return
      */
-    public boolean nextNode(String db) {
-        return buildCallBack().wei(_ID, db);
+    public boolean submitNextNodes() {
+        return buildPipeline().wei(_ID, BuildDB.getJSONObject("outdb"));
     }
     /**
-     * 反馈
+     * 反馈（异步） TODO
      * @param db
      * @return
      */
-    public String feedback(String db) {
+    public String feedback(Ret r) {
+        
+        repayRate(r.db);
+        record(r.db);
         return "";
     }
     /**
-     * 回报率
+     * 回报率 TODO
      * @param db
      * @return
      */
-    public String RepayRate(String db) {
+    public String repayRate(JSONObject db) {
         return "";
     }
     /**
-     * 记录
+     * 记录 TODO
      * @param db
      * @return
      */
-    public String record(String db) {
+    public String record(JSONObject db) {
         return "";
     }
     /**
      * 函数之间传递对象
      */
-    public static class ret {
-        public static ret b(Double code){
-            return b(code, null, null);
+    public static class Ret {
+        public static Ret b(String id, Double code){
+            return b(id, code, null, null);
         }
-        public static ret b(Double code, String msg){
-            return b(code, msg, null);
+        public static Ret b(String id, Double code, String msg){
+            return b(id, code, msg, null);
         }
-        public static ret b(Double code, JSONObject db){
-            return b(code, null, db);
+        public static Ret b(String id, Double code, JSONObject db){
+            return b(id, code, null, db);
         }
-        public static ret b(Double code, String msg, JSONObject db){
-            return new ret(code, msg, db);
+        public static Ret b(String id, Double code, String msg, JSONObject db){
+            return new Ret(id, code, msg, db);
         }
-        private ret(Double code, String msg, JSONObject db){
+        private Ret(String id, Double code, String msg, JSONObject db){
+            this.id = id;
             this.code = code;
             this.msg = msg;
             this.db = db;
         }
-        /**
-         * 权重值（非空）
-         */
+        /**ID*/
+        public String id;
+        /**权重值（非空）*/
         public double code;
-        /**
-         * 权重值解释
-         */
+        /**权重值解释*/
         public String msg;
-        /**
-         * 数据
-         */
+        /**数据*/
         public JSONObject db;
-        public ret setCode(Double code){
+        public Ret setCode(Double code){
             this.code = code;
             return this;
         }
-        public ret setMsg(String msg){
+        public Ret setMsg(String msg){
             this.msg = msg;
             return this;
         }
-        public ret setJSONObject(JSONObject db){
+        public Ret setJSONObject(JSONObject db){
             this.db = db;
             return this;
         }
     }
+
 }

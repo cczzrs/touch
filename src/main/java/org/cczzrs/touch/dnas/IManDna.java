@@ -3,7 +3,7 @@ package org.cczzrs.touch.dnas;
 import com.alibaba.fastjson.JSONObject;
 
 /**
- * dna父辈基础类
+ * dna雄性基础类
  */
 public class IManDna extends IDna {
     
@@ -15,7 +15,7 @@ public class IManDna extends IDna {
     }
 
     public void d() {
-        super.dominant=null;
-        super.recessive=null;
+        // super.dominant=null;
+        // super.recessive=null;
     }
 }

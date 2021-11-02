@@ -10,13 +10,20 @@ import java.util.Set;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
-import org.cczzrs.touch.dnas.IDna.ret;
+import org.cczzrs.touch.dnas.IDna.Ret;
 
 /**
  * 注册中心
  */
 public class IRegistry {
 
+    static {// 静态初始化操作
+        _ID = "";
+    }
+    /**
+     * 数据ID
+     */
+    public static final String _ID;
     /**
      * 待绑定对象
      */
@@ -25,7 +32,7 @@ public class IRegistry {
     /**
      * 已绑定对象
      */
-    public static Map<String, CallBack<?>> bangd = new HashMap<>();
+    public static Map<String, Pipeline<?>> bangd = new HashMap<>();
     /**
      * 绑定关系对象
      */
@@ -38,7 +45,7 @@ public class IRegistry {
      * @param cb
      * @param PID
      */
-    public static <T> void init(String ID, CallBack<T> cb, Set<String> PID) {
+    public static <T> void init(String ID, Pipeline<T> cb, Set<String> PID) {
         // 验证节点数据
         if(PID == null){
             PID = new HashSet<>();
@@ -77,8 +84,8 @@ public class IRegistry {
      * @param id
      * @param db
      */
-    public static ret whereIs(String id, String pid, String db) {
-        ret normal = ret.b(Double.MIN_NORMAL);
+    public static Ret whereIs(String id, String pid, JSONObject db) {
+        Ret normal = Ret.b(_ID, Double.MIN_NORMAL);
         JSONObject pdb = new JSONObject();
         pdb.put("id", id);
         pdb.put("pid", pid);
@@ -96,20 +103,22 @@ public class IRegistry {
     }
 
     @FunctionalInterface
-    public interface CallBack<T> {
+    public interface Pipeline<T> {
         /**
          * 上级节点的数据传递
          * @param db
          * @return
          */
-        ret wai(String id, String db);
+        Ret wai(String id, JSONObject db);
         /**
          * 把已处理的数据传递到下级所有节点中
          * @param db
          * @return
          */
-        default boolean wei(String id, String db) {
-            weis().forEach(wei -> wei.wai(id, db)); // TO DO 待线程池支持
+        default boolean wei(String id, JSONObject db) {
+            // 异步，并发。发送
+            // TODO 待线程池支持
+            weis().forEach(wei -> wei.wai(id, db)); 
             return true;
         }
         /**
@@ -117,13 +126,16 @@ public class IRegistry {
          * @param db
          * @return
          */
-        default boolean addWei(CallBack<?> cb) {
+        default boolean addWei(Pipeline<?> cb) {
             Objects.requireNonNull(cb);
             return weis().add((id, db) -> cb.wai(id, db));
             //    return (String id, String db) -> { wai(id, db); after.wai(id, db); };
         }
-        default List<CallBack<?>> weis() {
-            // List<CallBack<?>> weis = new ArrayList<>();
+        /**
+         * 当前下级所有节点 实现类需重写该函数
+         * @return
+         */
+        default List<Pipeline<?>> weis() {
             return null;
         }
     }
