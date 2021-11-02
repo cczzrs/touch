@@ -8,7 +8,7 @@ import org.springframework.context.annotation.ComponentScan;
 // @ComponentScan("org.cczzrs")
 @ComponentScan({"org.cczzrs.core","org.cczzrs.touch"})
 @ServletComponentScan({"org.cczzrs.touch"})
-// @ServletComponentScan({"org.cczzrs.core.sureness","org.cczzrs.touch"}) // 注册安全框架-sureness
+// @ServletComponentScan({"org.cczzrs.core.sureness","org.cczzrs.touch"}) // 注册权限框架-sureness
 @SpringBootApplication
 public class TouchApplication {
 
