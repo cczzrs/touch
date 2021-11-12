@@ -1,0 +1,48 @@
+<head>
+  <style> body { margin: 0; } </style>
+
+  <script src="https://unpkg.com/3d-force-graph"></script>
+  <!--<script src="../../dist/3d-force-graph.js"></script>-->
+</head>
+
+<body>
+  <!-- wiki: https://github.com/vasturiano/3d-force-graph -->
+  <div id="3d-graph"></div>
+
+  <script type="text/javascript" charset="UTF-8" src="base.js"></script>
+  <script type="text/javascript" charset="UTF-8" src="TD.js"></script>
+
+
+  <script>
+    const elem = document.getElementById('3d-graph');
+  </script>
+
+  <script>
+    const Graph = ForceGraph3D()(elem)
+        // .nodeLabel('id')
+        .nodeLabel(node => `${node.index}: ${node.id}`)
+        .nodeAutoColorBy('group')
+        .onNodeClick(node => {
+          // Aim at node from outside it
+          const distance = 40;
+          const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
+
+          Graph.cameraPosition(
+            { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, // new position
+            node, // lookAt ({ x, y, z })
+            1600  // ms transition duration
+          );
+        })
+        // .graphData(tree_all)
+        // .graphData(tree_min)
+        .graphData(tree_sl)
+        // .graphData(node_sl)
+        // .enableNodeDrag(addInterval(false))
+        .linkDirectionalParticles("value")
+        .linkDirectionalParticleSpeed(d => d.value * 0.001);
+
+      // addInterval(false); // 开启动态新增数据
+  </script>
+
+
+</body>
