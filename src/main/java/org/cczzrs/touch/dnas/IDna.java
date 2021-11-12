@@ -136,13 +136,34 @@ public class IDna {
          * 云加载DB，主要提供给behavior等其他函数作为主导数据
          */
         public Dominant(JSONObject db){
-            _CODE = db.getDoubleValue("key");
+            this._ID = db.getString("id");
+            this._CODE = db.getDoubleValue("code");
+            this._CODE_LS = db.getDoubleValue("codels");
+            this.ODB = db.getJSONObject("odb");
+            req = Ret.b(this._ID, this._CODE, this.getClass().getName(), this.ODB);
         }
         
+        /**ID*/
+        private final String _ID;
         /**权重值*/
-        public final double _CODE;
+        private final double _CODE;
         /**临时权重值*/
         public double _CODE_LS;
+        /**原数据（固定经验数据）*/
+        private final JSONObject ODB;
+        /**该对象数据传递对象-不变参数*/
+        public final Ret req;
+
+        /**
+         * 行为（习性）-分析临时权重值变动值
+         * @param db
+         * @return
+         */
+        public Ret behavior(JSONObject db) {
+            // 根据数据计算得出临时权重值的平滑偏差值
+            this._CODE_LS += Psychology.dominant_behavior(req, this._CODE_LS, db);
+            return Ret.b(this._ID, this._CODE + this._CODE_LS);
+        }
     }
     /**
      * 隐性基因类
@@ -152,13 +173,23 @@ public class IDna {
          * 云加载DB，主要提供给behavior等其他函数作为主导数据
          */
         public Recessive(JSONObject db){
-            _CODE = db.getDoubleValue("key");
+            this._ID = db.getString("id");
+            this._CODE = db.getDoubleValue("code");
+            this._CODE_LS = db.getDoubleValue("codels");
+            this.ODB = db.getJSONObject("odb");
+            ret = Ret.b(this._ID, this._CODE, this.getClass().getName(), this.ODB);
         }
         
+        /**ID*/
+        private final String _ID;
         /**权重值*/
-        public final double _CODE;
+        private final double _CODE;
         /**临时权重值*/
         public double _CODE_LS;
+        /**原数据（固定经验数据）*/
+        private final JSONObject ODB;
+        /**该对象数据传递对象-不变参数*/
+        public final Ret ret;
     }
 
     /**
@@ -166,7 +197,16 @@ public class IDna {
      * @param db
      * @return
      */
-    public String behavior(String db) {
+    public String behavior(JSONObject db) {
+        // 根据数据计算得出临时权重值的平滑偏差值
+        // TODO
+        // this._CODE_LS += Psychology.Behavior.all(req, this._CODE_LS, db);
+        // return Ret.b(this._ID, this._CODE + this._CODE_LS);
+        dominant.behavior(db);
+
+
+
+
         submitNextNodes();
         return "";
     }
