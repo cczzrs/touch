@@ -1,3 +1,11 @@
+Array.prototype.remove=function(dx) {
+  if(isNaN(dx)||dx>this.length){return false;}
+    for(var i=this[dx].index;i<this.length-1;i++) {
+        this[i]=this[i+1]
+    }
+    this.length-=1
+  }
+
 function guid() {
     return 'xxxxxxxx-yxxx-yxxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => c == 'x' ?(Math.random() * 16 | 0).toString(16) : ((Math.random() * 16 | 0) & 0x3 | 0x8).toString(16));
 }
@@ -43,4 +51,46 @@ function addInterval(bl){
     }, 5000);
   }
   return bl;
+}
+
+/**
+ * 节点点击事件，移动镜头
+ */
+function myNodeClick(node) { // 节点点击事件，移动镜头
+  // Aim at node from outside it
+  const distance = 100;
+  const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
+  Graph.cameraPosition(
+    { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, // new position
+    node, // lookAt ({ x, y, z })
+    1600  // ms transition duration
+  );
+}
+
+/**
+ * 获取最新全量数据
+ * http://192.168.31.31:8000/t/1
+ */
+var getDBInterval = null;
+var getDBInterval_url = "http://192.168.31.31:8000/t/1";
+function getDBIntervalF(bl, t){
+            debugger;
+  if(bl){
+    if(getDBInterval==null){
+      getDBInterval = setInterval(() => {
+          $.ajax({url:getDBInterval_url,success:function(d){
+            console.log(d.data);
+            if(d.code==200){
+              Graph.graphData(d.data);
+            }
+          }});
+      }, t?t:5000);
+    }    
+  }else{
+    if(getDBInterval!=null){
+      clearInterval(getDBInterval);
+      getDBInterval = null;
+    }
+  }
+  return getDBInterval;
 }

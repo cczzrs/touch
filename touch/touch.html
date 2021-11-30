@@ -1,0 +1,85 @@
+<head>
+  <style> body { margin: 0; } </style>
+  <script src="https://unpkg.com/three@0.134.0/build/three.js"></script>
+  <script src="https://unpkg.com/d3@7.1.1/dist/d3.min.js"></script>
+  <script src="https://unpkg.com/3d-force-graph@1.70.5/dist/3d-force-graph.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+</head>
+
+<body>
+  <!-- wiki: https://github.com/vasturiano/3d-force-graph -->
+  <div id="3d-graph"></div>
+
+  <script type="text/javascript" charset="UTF-8" src="base.js"></script>
+  <script type="text/javascript" charset="UTF-8" src="test.js"></script>
+  <!-- <script type="text/javascript" charset="UTF-8" src="TD.js"></script> -->
+  <script>
+    const elem = document.getElementById('3d-graph');
+    const tree_sl = { 
+        nodes: [
+          {"id": "Myriel", "g": 1},
+          {"id": "Napoleon", "g": 5},
+          {"id": "Mlle.Baptistine", "g": 1},
+          {"id": "CountessdeLo", "g": 5},
+          {"id": "Geborand", "g": 5},
+          {"id": "Champtercier", "g": 1},
+          {"id": "Cravatte", "g": 3},
+          {"id": "Count", "g": 3},
+          {"id": "OldMan", "g": 3},
+          {"id": "Labarre", "g": 2},
+          {"id": "Valjean", "g": 2},
+          {"id": "Mme.Magloire", "g": 1},
+          {"id": "tow-1", "g": 11},
+          {"id": "tow-2", "g": 13},
+          {"id": "tow-21", "g": 14},
+          {"id": "tow-3", "g": 15},
+          {"id": "tow-31", "g": 16},
+          {"id": "tow-4", "g": 15}
+        ], 
+        links: [
+          {"s": "Napoleon", "t": "Myriel", "v": 1},
+          {"s": "Mlle.Baptistine", "t": "Myriel", "v": 8},
+          {"s": "Mme.Magloire", "t": "Myriel", "v": 10},
+          {"s": "Mme.Magloire", "t": "Mlle.Baptistine", "v": 6},
+          {"s": "CountessdeLo", "t": "Myriel", "v": 1},
+          {"s": "Geborand", "t": "Myriel", "v": 1},
+          {"s": "Champtercier", "t": "Myriel", "v": 1},
+          {"s": "Cravatte", "t": "Myriel", "v": 1},
+          {"s": "Count", "t": "Myriel", "v": 2},
+          {"s": "OldMan", "t": "Myriel", "v": 1},
+          {"s": "Valjean", "t": "Labarre", "v": 1},
+          {"s": "Valjean", "t": "Mme.Magloire", "v": 3},
+          {"s": "Valjean", "t": "Mlle.Baptistine", "v": 3},
+          {"s": "Valjean", "t": "Myriel", "v": 5},
+          {"s": "tow-1", "t": "tow-2", "v": 11},
+          {"s": "tow-1", "t": "tow-3", "v": 11},
+          {"s": "tow-1", "t": "tow-4", "v": 11},
+          {"s": "tow-2", "t": "tow-21", "v": 11},
+          {"s": "tow-3", "t": "tow-31", "v": 11}
+        ] 
+      };
+
+  </script>
+  <script>
+    const Graph = ForceGraph3D()(elem)
+        .graphData(tree_sl)
+        .nodeLabel(node => `${node.index}: ${node.id}`)
+        .nodeAutoColorBy('g')
+        .linkSource("s").linkTarget("t")
+        .linkAutoColorBy('v') // 链接线色彩
+        .linkWidth("v") // 链接线粗细
+        .linkDirectionalParticleWidth(link => link.v+1) // 数据包大小
+        .linkDirectionalParticles(link => link.v==0?0:1) // "v") // 数据包数量
+        .linkDirectionalParticleSpeed(d => 0.001) // d.v * 0.001) // 传递速度
+        .onNodeClick(node => myNodeClick(node));
+
+      // addInterval(false); // 开启动态新增数据
+      // getDBIntervalF(true,16500);  // 开启实时数据
+
+      // 开启实时数据 - 增量
+      var zl = setInterval(() => {t1()}, 16500);
+  </script>
+
+
+</body>

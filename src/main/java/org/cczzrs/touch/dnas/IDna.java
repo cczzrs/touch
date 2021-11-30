@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Queue;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -23,7 +24,8 @@ public class IDna {
      * 云加载DB（主导数据）
      */
     public IDna(JSONObject db) {
-        _ID = MD5Encoder.encode(db.toJSONString().getBytes()); // 获取核心的ID，以定位自己的位置
+        // _ID = MD5Encoder.encode(db.toJSONString().getBytes()); // 获取核心的ID，以定位自己的位置
+        _ID = db.getString("id");
         _CODE = db.getDoubleValue("code"); // 获取当前节点权重值
         _CODE_LS = db.getDoubleValue("code_ls"); // 获取当前节点临时权重值
         _PIDS = db.getJSONArray("pids").toJavaList(String.class);// 需连接到的位置（所有上级节点）
@@ -46,6 +48,16 @@ public class IDna {
                 public List<Pipeline<?>> weis() {
                     return weis;
                 }
+                /**数据传递大小*/
+                Queue<Integer> q = null;
+                @Override
+                public Queue<Integer> q() {
+                    if(q==null){
+                        q = Pipeline.super.q();
+                    }
+                    return q;
+                }
+                
                 /**
                  * 接收上级节点的数据传递
                  */
@@ -59,6 +71,17 @@ public class IDna {
                     }
                     ODB_puts(id, db);
                     return Ret.b(_ID, _CODE + _CODE_LS);
+                }
+                @Override
+                public String ID() {
+                    return _ID;
+                }
+                @Override
+                public JSONObject DB() {
+                    if(!BuildDB.containsKey("show")){
+                        BuildDB.put("show", new JSONObject().fluentPut("id", _ID).fluentPut("g", 0));
+                    }
+                    return BuildDB.getJSONObject("show");
                 }
             };
         }
@@ -204,9 +227,9 @@ public class IDna {
         // return Ret.b(this._ID, this._CODE + this._CODE_LS);
         dominant.behavior(db);
 
-
-
-
+        JSONObject outdb = new JSONObject();
+        outdb.put("value", 1);
+        BuildDB.put("outdb", outdb);
         submitNextNodes();
         return "";
     }
@@ -216,7 +239,7 @@ public class IDna {
      * @return
      */
     public boolean submitNextNodes() {
-        return buildPipeline().wei(_ID, BuildDB.getJSONObject("outdb"));
+        return buildPipeline().wei(BuildDB.getJSONObject("outdb"));
     }
     /**
      * 反馈（异步） TODO

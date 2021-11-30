@@ -1,8 +1,14 @@
 <head>
   <style> body { margin: 0; } </style>
+  <!-- <script src="https://unpkg.com/three"></script> -->
+  <script src="https://unpkg.com/three@0.134.0/build/three.js"></script>
 
-  <script src="https://unpkg.com/3d-force-graph"></script>
+  <!-- <script src="https://unpkg.com/d3"></script> -->
+  <script src="https://unpkg.com/d3@7.1.1/dist/d3.min.js"></script>
+
+  <!-- <script src="https://unpkg.com/3d-force-graph"></script> -->
   <!--<script src="../../dist/3d-force-graph.js"></script>-->
+  <script src="https://unpkg.com/3d-force-graph@1.70.5/dist/3d-force-graph.min.js"></script>
 </head>
 
 <body>
@@ -17,14 +23,75 @@
     const elem = document.getElementById('3d-graph');
   </script>
 
+  <script type="text/javascript">
+    const highlightNodes = new Set();
+    const highlightLinks = new Set();
+    const nodeColorScale = d3.scaleOrdinal(d3.schemeRdYlGn[4]);
+
+    function updateHighlight() {
+      // trigger update of highlighted objects in scene
+      Graph
+        .nodeColor(Graph.nodeColor())
+        .linkWidth(Graph.linkWidth())
+        .linkDirectionalParticles(Graph.linkDirectionalParticles());
+    }
+  </script>
+
   <script>
+
+    var nodesMap = {};
+    tree_sl.nodes.forEach(node => nodesMap[node.id]=node);
+    // cross-link node objects
+    var tree_sl_b = tree_sl.links.forEach(link => {
+      const a = nodesMap[link.source];
+      const b = nodesMap[link.target];
+      !a.neighbors && (a.neighbors = []);
+      !b.neighbors && (b.neighbors = []);
+      a.neighbors.push(b);
+      b.neighbors.push(a);
+
+      !a.links && (a.links = []);
+      !b.links && (b.links = []);
+      a.links.push(link);
+      b.links.push(link);
+    });
+
     const Graph = ForceGraph3D()(elem)
+        // .graphData(tree_all)
+        // .graphData(tree_min)
+        .graphData(tree_sl)
+        // .graphData(tree_sl_b)
+        // .graphData(node_sl)
+        // .graphData(gidata)
         // .nodeLabel('id')
         .nodeLabel(node => `${node.index}: ${node.id}`)
-        .nodeAutoColorBy('group')
-        .onNodeClick(node => {
+        // .nodeAutoColorBy('group')
+        .nodeColor(node => nodeColorScale(node.id))
+        // .linkDirectionalParticleColor(THREE.VertexColors)
+        .linkDirectionalArrowColor('red')
+        // .linkThreeObject(link => {
+        //   const colors = new Float32Array([].concat(
+        //     ...[link.source, link.target]
+        //       .map(nodeColorScale)
+        //       .map(d3.color)
+        //       .map(({ r, g, b }) => [r, g, b].map(v => v / 255)
+        //     )));
+
+        //   const material = new THREE.LineBasicMaterial({ vertexColors: THREE.VertexColors, linewidth: 6});
+        //   const geometry = new THREE.BufferGeometry();
+        //   // geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(2 * 3), 3));
+        //   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        //   return new THREE.Line(geometry, material);
+        // })
+        .linkWidth(link => highlightLinks.has(link) ? 4 : 8)
+        // .width(8)
+        .linkDirectionalParticleWidth(3)
+        // .linkDirectionalParticles(link => highlightLinks.has(link) ? 4 : 2)
+        .linkDirectionalParticles("value")
+        .linkDirectionalParticleSpeed(d => d.value * 0.001)
+        .onNodeClick(node => { // 节点点击事件，移动镜头
           // Aim at node from outside it
-          const distance = 40;
+          const distance = 100;
           const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
 
           Graph.cameraPosition(
@@ -32,14 +99,7 @@
             node, // lookAt ({ x, y, z })
             1600  // ms transition duration
           );
-        })
-        // .graphData(tree_all)
-        // .graphData(tree_min)
-        .graphData(tree_sl)
-        // .graphData(node_sl)
-        // .enableNodeDrag(addInterval(false))
-        .linkDirectionalParticles("value")
-        .linkDirectionalParticleSpeed(d => d.value * 0.001);
+        });
 
       // addInterval(false); // 开启动态新增数据
   </script>

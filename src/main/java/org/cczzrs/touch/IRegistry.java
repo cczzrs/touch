@@ -2,9 +2,11 @@ package org.cczzrs.touch;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.Set;
 
 import com.alibaba.fastjson.JSONArray;
@@ -104,6 +106,19 @@ public class IRegistry {
 
     @FunctionalInterface
     public interface Pipeline<T> {
+        
+        default Queue<Integer> q(){
+            return new LinkedList<>(){
+                @Override
+                public Integer poll() {
+                    return super.poll()==null?0:super.poll();
+                }
+            };
+        }
+        // Queue<Integer> q = new LinkedList<>();
+        // queue.offer(1); //队尾加入
+        // int num = queue.poll; //队首弹出
+
         /**
          * 上级节点的数据传递
          * @param db
@@ -115,10 +130,11 @@ public class IRegistry {
          * @param db
          * @return
          */
-        default boolean wei(String id, JSONObject db) {
+        default boolean wei(JSONObject db) {
+            q().offer(db.size());
             // 异步，并发。发送
             // TODO 待线程池支持
-            weis().forEach(wei -> wei.wai(id, db)); 
+            weis().forEach(wei -> wei.wai(ID(), db)); 
             return true;
         }
         /**
@@ -128,14 +144,31 @@ public class IRegistry {
          */
         default boolean addWei(Pipeline<?> cb) {
             Objects.requireNonNull(cb);
-            return weis().add((id, db) -> cb.wai(id, db));
+            return weis().add(cb);
             //    return (String id, String db) -> { wai(id, db); after.wai(id, db); };
         }
         /**
-         * 当前下级所有节点 实现类需重写该函数
+         * 当前下级所有节点
+         * @see 实现类需重写该函数
          * @return
          */
         default List<Pipeline<?>> weis() {
+            return null;
+        }
+        /**
+         * 当前节点ID 
+         * @see 实现类需重写该函数
+         * @return
+         */
+        default String ID() {
+            return null;
+        }
+        /**
+         * 当前节点基础数据
+         * @see 实现类需重写该函数
+         * @return
+         */
+        default JSONObject DB() {
             return null;
         }
     }
