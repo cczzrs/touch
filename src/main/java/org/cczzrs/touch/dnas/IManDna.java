@@ -18,8 +18,9 @@ public class IManDna extends IDna {
         super(db);
     }
     public static IManDna init(JSONObject db){
-        iManDnas.add(new IManDna(db));
-        return iManDnas.get(iManDnas.size()-1);
+        IManDna newMan = new IManDna(db);
+        iManDnas.add(newMan);
+        return newMan;
     }
     
     @Override

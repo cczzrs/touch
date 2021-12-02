@@ -111,7 +111,8 @@ public class IRegistry {
             return new LinkedList<>(){
                 @Override
                 public Integer poll() {
-                    return super.poll()==null?0:super.poll();
+                    Integer sp = super.poll();
+                    return sp==null?0:sp;
                 }
             };
         }

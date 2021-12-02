@@ -3,13 +3,13 @@ package org.cczzrs.touch.dnas;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Queue;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
-import org.apache.tomcat.util.security.MD5Encoder;
 import org.cczzrs.touch.IRegistry;
 import org.cczzrs.touch.IRegistry.Pipeline;
 
@@ -101,8 +101,21 @@ public class IDna {
             ODB.put(key, JSONArray.parseArray(JSONArray.toJSONString(db)));
         }
     }
+    protected void ODB_puts(String key, int ppd, JSONObject... db) {
+        String ikey = key.substring(0, ppd); // 以 ikey 开始的key的值
+        if(ODB.containsKey(ikey)) {
+            ODB.getJSONArray(ikey).addAll(Arrays.asList(db));
+        } else {
+            // ODB.put(ikey, Arrays.asList(db));
+            ODB.put(ikey, db);
+        }
+    }
     protected JSONArray ODB_gets(String key) {
         return ODB.getJSONArray(key);
+    }
+    protected JSONArray ODB_gets(String key, int ppd) {
+        String ikey = key.substring(0, ppd); // 以 ikey 开始的key的值
+        return ODB.getJSONArray(ikey);
     }
 
     /**
@@ -140,7 +153,8 @@ public class IDna {
     /**
      * 构建数据（处理）
      */
-    protected JSONObject BuildDB = new JSONObject();
+    protected JSONArray outdb = new JSONArray();
+    protected JSONObject BuildDB = newJO("outdb", outdb);
     
     /**
      * 显性基因对象
@@ -215,12 +229,45 @@ public class IDna {
         public final Ret ret;
     }
 
+    // 线程逻辑.
+    // 从历史数据中寻找匹配的当前（情况）数据（参数中包涵匹配度，默认为最匹配的数据）的历史数据 behavior
+    // 没有匹配到即为新事物，记录数据为待定（待定数据会在异步反馈中更新可输出数据 feedback <= 异步回报率以提高数据匹配度 repayRate） record
+    // 输出数据传递到所有绑定的下级节点 submitNextNodes();
+    // 如果父母级有高度匹配数据，即再次传递输出数据到下级节点 => 异步进行父母级匹配数据 <= 把数据提到历史数据中
+
     /**
-     * 行为（习性） TODO
+     * 行为（习性）
+     * 从历史数据中寻找匹配的当前（情况）数据（参数中包涵匹配度，默认为最匹配的数据）的历史数据 behavior
      * @param db
      * @return
      */
-    public String behavior(JSONObject db) {
+    public JSONObject behavior(JSONObject db) {
+        JSONObject ndb = newJO();
+        String tz = db.getString("tz");
+        JSONArray odbs = ODB_gets(tz, db.getIntValue("ppd"));
+        if(odbs == null || odbs.size() < 1) {
+            // 没有匹配到即为新事物，记录数据为待定（待定数据会在异步反馈中更新可输出数据 feedback <= 异步回报率以提高数据匹配度 repayRate） record
+            ODB_puts(tz, db.getIntValue("ppd"), db.fluentPut("req", 1).fluentPut("state", 0).fluentPut("r", 0).fluentPut("j", 0));
+            return newJO();
+        } else {
+            JSONObject odb;
+            JSONObject tdb;
+            for (int i = 0; i < odbs.size(); i++) {
+                odb = odbs.getJSONObject(i);
+                if(odb.getDouble("state") == 0) {// 数据为待定  // 正负为方向、大小为频率、0为待定
+                    tdb = ODB.getJSONObject(tz);
+                    tdb.put("req", tdb.getIntValue("req")+1);
+                    continue;
+                } else{
+                    // 构建传递数据，计算特征tz，匹配度ppd
+                    ndb.fluentPut("tz", tz).fluentPut("ppd", 111);
+                    outdb.add(ndb);
+                }
+            }
+        }
+        return ndb;
+    }
+    public String behavior1(JSONObject db) {
         // 根据数据计算得出临时权重值的平滑偏差值
         // TODO
         // this._CODE_LS += Psychology.Behavior.all(req, this._CODE_LS, db);
@@ -231,6 +278,9 @@ public class IDna {
         outdb.put("value", 1);
         BuildDB.put("outdb", outdb);
         submitNextNodes();
+
+
+
         return "";
     }
     /**
@@ -312,4 +362,11 @@ public class IDna {
         }
     }
 
+    public JSONObject newJO(){
+        return new JSONObject(new LinkedHashMap<>());
+    }
+    public JSONObject newJO(String key, Object value){
+        return new JSONObject(new LinkedHashMap<>()).fluentPut(key, value);
+    }
+    
 }
