@@ -1,9 +1,13 @@
 <head>
   <style> body { margin: 0; } </style>
-  <script src="https://unpkg.com/three@0.134.0/build/three.js"></script>
-  <script src="https://unpkg.com/d3@7.1.1/dist/d3.min.js"></script>
-  <script src="https://unpkg.com/3d-force-graph@1.70.5/dist/3d-force-graph.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- <script src="https://unpkg.com/three@0.134.0/build/three.js"></script> -->
+  <!-- <script type="text/javascript" charset="UTF-8" src="js.3d/three0.134.0.js"></script> -->
+  <!-- <script src="https://unpkg.com/d3@7.1.1/dist/d3.min.js"></script> -->
+  <!-- <script type="text/javascript" charset="UTF-8" src="js.3d/d3.min.js"></script> -->
+  <!-- <script src="https://unpkg.com/3d-force-graph@1.70.5/dist/3d-force-graph.min.js"></script> -->
+  <script type="text/javascript" charset="UTF-8" src="js.3d/3d-force-graph.min.js"></script>
+  <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+  <script type="text/javascript" charset="UTF-8" src="js.lib/jm.js"></script>
 
 </head>
 
@@ -11,9 +15,10 @@
   <!-- wiki: https://github.com/vasturiano/3d-force-graph -->
   <div id="3d-graph"></div>
 
-  <script type="text/javascript" charset="UTF-8" src="base.js"></script>
-  <script type="text/javascript" charset="UTF-8" src="test.js"></script>
-  <!-- <script type="text/javascript" charset="UTF-8" src="TD.js"></script> -->
+  <script type="text/javascript" charset="UTF-8" src="js.my/base.js"></script>
+  <script type="text/javascript" charset="UTF-8" src="js.my/url.js"></script>
+  <script type="text/javascript" charset="UTF-8" src="js.my/test.js"></script>
+  <!-- <script type="text/javascript" charset="UTF-8" src="js.my/TD.js"></script> -->
   <script>
     const elem = document.getElementById('3d-graph');
     const tree_sl = { 
@@ -78,7 +83,7 @@
       // getDBIntervalF(true,16500);  // 开启实时数据
 
       // 开启实时数据 - 增量
-      var zl = setInterval(() => {t1()}, 16500);
+      var zl = setInterval(() => {setNewInsert()}, 16500);
   </script>
 
 
