@@ -2,10 +2,13 @@ package org.cczzrs.touch.dnas;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.UUID;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -18,7 +21,11 @@ import org.cczzrs.touch.IRegistry.Pipeline;
  */
 public class IDna {
     /**全局待否定，紧急刹车控制*/
-    public static boolean _GlobalNegation = true;
+    public static boolean _GlobalStop = false;
+    /**本局是否运行*/
+    public boolean _ISRUN = true;
+    /**本局结束*/
+    public boolean _ISOVER = false;
     
     /**
      * 云加载DB（主导数据）
@@ -29,6 +36,13 @@ public class IDna {
         _CODE = db.getDoubleValue("code"); // 获取当前节点权重值
         _CODE_LS = db.getDoubleValue("code_ls"); // 获取当前节点临时权重值
         _PIDS = db.getJSONArray("pids").toJavaList(String.class);// 需连接到的位置（所有上级节点）
+        /**
+         * {
+         *  "ppd":1,// ODB.getIntValue("ppd");// >0匹配度，<0常用度的，
+         * 
+         * }
+         */
+        ODB_ = db.getJSONObject("odb"); // 获取当前节点主数据
         dominant = new Dominant(db.getJSONObject("dominant")); // 初始化显性基因对象
         recessive = new Recessive(db.getJSONObject("recessive")); // 初始化隐性基因对象
         IRegistry.init(_ID, buildPipeline(), new HashSet<String>(_PIDS));// 注册 连接到自己的位置
@@ -64,13 +78,12 @@ public class IDna {
                 @Override
                 public Ret wai(String id, JSONObject db) {
                     if(!_PIDS.contains(id)){ // 未知连接节点
-                        // Registry.whereIs(_ID, id, db);// 上报到注册中心，
+                        // Registry.whereIs(_ID, id, db);// 上报到注册中心（决策是否接受），
                         if(!pgBoolean(IRegistry.whereIs(_ID, id, db))){
                             return Ret.b(_ID, _CODE - _CODE_LS);
                         }
                     }
-                    ODB_puts(id, db);
-                    return Ret.b(_ID, _CODE + _CODE_LS);
+                    return Ret.b(_ID, _CODE + _CODE_LS, String.valueOf(BuildDB_indb_add(id, db)));
                 }
                 @Override
                 public String ID() {
@@ -93,29 +106,46 @@ public class IDna {
      * @param key
      * @param db
      */
-    protected void ODB_puts(String key, JSONObject... db) {
-        if(ODB.containsKey(key)) {
-            ODB.getJSONArray(key).addAll(Arrays.asList(db));
-        } else {
-            // ODB.put(key, Arrays.asList(db));
-            ODB.put(key, JSONArray.parseArray(JSONArray.toJSONString(db)));
-        }
+    protected boolean BuildDB_indb_add(String id, JSONObject db) {
+        return indb.add(db.fluentPut("id", id));
     }
-    protected void ODB_puts(String key, int ppd, JSONObject... db) {
-        String ikey = key.substring(0, ppd); // 以 ikey 开始的key的值
-        if(ODB.containsKey(ikey)) {
-            ODB.getJSONArray(ikey).addAll(Arrays.asList(db));
+    
+    protected void ODB_puts(String key, String... jlID) {
+        if(ODB_.containsKey(key)) {
+            ODB_.getJSONArray(key).addAll(Arrays.asList(jlID));
         } else {
-            // ODB.put(ikey, Arrays.asList(db));
-            ODB.put(ikey, db);
+            ODB_.put(key, jlID); // ODB.put(ikey, Arrays.asList(jlID));
         }
-    }
-    protected JSONArray ODB_gets(String key) {
-        return ODB.getJSONArray(key);
     }
     protected JSONArray ODB_gets(String key, int ppd) {
-        String ikey = key.substring(0, ppd); // 以 ikey 开始的key的值
-        return ODB.getJSONArray(ikey);
+        if(ppd==0){
+            return null;
+        }
+        JSONArray ret = ODB_.getJSONArray(key);
+        if(ret == null || ret.size() < 1){
+            return ret;
+        }
+        // 构建顺序 // 有效可输出（传递）数据，1.匹配度最高的，2.常用度的，3...度递减
+        String sortStr = ppd>0?"ppd":"req";
+        return new JSONArray(ret.stream().sorted(new Comparator<>(){
+            JSONObject iodb1;
+            JSONObject iodb2;
+            @Override
+            public int compare(Object o1, Object o2) {
+                iodb1 = ODB_.getJSONObject(String.valueOf(o1));
+                iodb2 = ODB_.getJSONObject(String.valueOf(o1));
+                if(iodb1 == null){
+                    if(iodb2 == null){
+                        return 0;
+                    } else {
+                        return iodb2.getIntValue(sortStr);
+                    }
+                } else if(iodb2 == null){
+                    return iodb1.getIntValue(sortStr);
+                }
+                return iodb1.getIntValue(sortStr) - iodb2.getIntValue(sortStr);
+            }
+        }).toList().subList(0, Math.abs(ppd)-1));
     }
 
     /**
@@ -149,12 +179,13 @@ public class IDna {
     /**
      * 原数据（输入）
      */
-    private JSONObject ODB = new JSONObject();
+    private JSONObject ODB_ = new JSONObject();
     /**
      * 构建数据（处理）
      */
-    protected JSONArray outdb = new JSONArray();
-    protected JSONObject BuildDB = newJO("outdb", outdb);
+    protected Queue<JSONObject> indb = new LinkedList<>();
+    protected Queue<JSONObject> outdb = new LinkedList<>();
+    protected JSONObject BuildDB = newJO("outdb", outdb).fluentPut("indb", indb);
     
     /**
      * 显性基因对象
@@ -176,8 +207,8 @@ public class IDna {
             this._ID = db.getString("id");
             this._CODE = db.getDoubleValue("code");
             this._CODE_LS = db.getDoubleValue("codels");
-            this.ODB = db.getJSONObject("odb");
-            req = Ret.b(this._ID, this._CODE, this.getClass().getName(), this.ODB);
+            this._ODB = db.getJSONObject("odb");
+            req = Ret.b(this._ID, this._CODE, this.getClass().getName(), this._ODB);
         }
         
         /**ID*/
@@ -187,7 +218,7 @@ public class IDna {
         /**临时权重值*/
         public double _CODE_LS;
         /**原数据（固定经验数据）*/
-        private final JSONObject ODB;
+        private final JSONObject _ODB;
         /**该对象数据传递对象-不变参数*/
         public final Ret req;
 
@@ -213,8 +244,8 @@ public class IDna {
             this._ID = db.getString("id");
             this._CODE = db.getDoubleValue("code");
             this._CODE_LS = db.getDoubleValue("codels");
-            this.ODB = db.getJSONObject("odb");
-            ret = Ret.b(this._ID, this._CODE, this.getClass().getName(), this.ODB);
+            this._ODB = db.getJSONObject("odb");
+            ret = Ret.b(this._ID, this._CODE, this.getClass().getName(), this._ODB);
         }
         
         /**ID*/
@@ -224,7 +255,7 @@ public class IDna {
         /**临时权重值*/
         public double _CODE_LS;
         /**原数据（固定经验数据）*/
-        private final JSONObject ODB;
+        private final JSONObject _ODB;
         /**该对象数据传递对象-不变参数*/
         public final Ret ret;
     }
@@ -234,7 +265,32 @@ public class IDna {
     // 没有匹配到即为新事物，记录数据为待定（待定数据会在异步反馈中更新可输出数据 feedback <= 异步回报率以提高数据匹配度 repayRate） record
     // 输出数据传递到所有绑定的下级节点 submitNextNodes();
     // 如果父母级有高度匹配数据，即再次传递输出数据到下级节点 => 异步进行父母级匹配数据 <= 把数据提到历史数据中
-
+    /**
+     * 持续运行，监控输入数据的增长，处理数据（执行）
+     * @param args
+     */
+    public void _run(long sl, long isRun) {
+        System.out.println(_ID+" => START!");
+        try {
+            while (!_ISOVER){
+                while (_GlobalStop && !_ISRUN){// 等待、
+                    Thread.sleep(isRun);
+                }
+                if(outdb.size()>0){// 监控输出数据的增长，
+                    buildPipeline().wei(outdb.poll());// 发送数据到下级所有节点中
+                }
+                if(indb.size()>0){// 监控输入数据的增长
+                    behavior(indb.poll());// 处理数据（执行）， 行为（习性）
+                } else {
+                    Thread.sleep(sl);
+                }
+            }
+        } catch (InterruptedException e) {
+            System.out.println(_ID+" => Exception!");
+            e.printStackTrace();
+        }
+        System.out.println(_ID+" => OVER!");
+    }
     /**
      * 行为（习性）
      * 从历史数据中寻找匹配的当前（情况）数据（参数中包涵匹配度，默认为最匹配的数据）的历史数据 behavior
@@ -242,46 +298,34 @@ public class IDna {
      * @return
      */
     public JSONObject behavior(JSONObject db) {
-        JSONObject ndb = newJO();
         String tz = db.getString("tz");
         JSONArray odbs = ODB_gets(tz, db.getIntValue("ppd"));
         if(odbs == null || odbs.size() < 1) {
             // 没有匹配到即为新事物，记录数据为待定（待定数据会在异步反馈中更新可输出数据 feedback <= 异步回报率以提高数据匹配度 repayRate） record
-            ODB_puts(tz, db.getIntValue("ppd"), db.fluentPut("req", 1).fluentPut("state", 0).fluentPut("r", 0).fluentPut("j", 0));
-            return newJO();
+            String newID = UUID.randomUUID().toString();
+            JSONObject newJL = db.fluentPut("id", newID).fluentPut("req", 1).fluentPut("state", 0).fluentPut("r", 0).fluentPut("j", 0);
+            ODB_.put(newID, newJL);
+            ODB_puts(tz, newID);
+            return newJL;
         } else {
             JSONObject odb;
-            JSONObject tdb;
-            for (int i = 0; i < odbs.size(); i++) {
-                odb = odbs.getJSONObject(i);
-                if(odb.getDouble("state") == 0) {// 数据为待定  // 正负为方向、大小为频率、0为待定
-                    tdb = ODB.getJSONObject(tz);
-                    tdb.put("req", tdb.getIntValue("req")+1);
+            int this_ppd = ODB_.getIntValue("ppd");// >0匹配度，<0常用度的，
+            int obdsLength = odbs.size();
+            for (int i = 0; i < obdsLength; i++) {
+                odb = ODB_.getJSONObject(odbs.getString(i));
+                if(odb == null) {// 数据刚刚被清理
                     continue;
-                } else{
+                } else if(odb.getDouble("state") == 0) {// 数据为待定  // 正负为方向、大小为频率、0为待定
+                    odb.put("req", odb.getIntValue("req")+1);
+                    continue;
+                } else if(odb.getDouble("r") != 0) {// 有效可输出（传递）数据，1.匹配度最高的，2.常用度的，3...度递减
+                    odb.put("req", odb.getIntValue("req")+1);
                     // 构建传递数据，计算特征tz，匹配度ppd
-                    ndb.fluentPut("tz", tz).fluentPut("ppd", 111);
-                    outdb.add(ndb);
+                    outdb.add(newJO("tz", tz+_ID+"."+odb.getString("id")+",").fluentPut("ppd", this_ppd));                    
                 }
             }
         }
-        return ndb;
-    }
-    public String behavior1(JSONObject db) {
-        // 根据数据计算得出临时权重值的平滑偏差值
-        // TODO
-        // this._CODE_LS += Psychology.Behavior.all(req, this._CODE_LS, db);
-        // return Ret.b(this._ID, this._CODE + this._CODE_LS);
-        dominant.behavior(db);
-
-        JSONObject outdb = new JSONObject();
-        outdb.put("value", 1);
-        BuildDB.put("outdb", outdb);
-        submitNextNodes();
-
-
-
-        return "";
+        return odbs.getJSONObject(0);
     }
     /**
      * 提交处理好的数据到下级所有节点
@@ -289,10 +333,14 @@ public class IDna {
      * @return
      */
     public boolean submitNextNodes() {
-        return buildPipeline().wei(BuildDB.getJSONObject("outdb"));
+        if(outdb.size()>0){
+            return buildPipeline().wei(outdb.poll());
+        } else {
+            return true;
+        }
     }
     /**
-     * 反馈（异步） TODO
+     * 反馈（异步） TODO TODO 2021年12月4日
      * @param db
      * @return
      */
