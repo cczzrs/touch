@@ -345,7 +345,19 @@ public class IDna {
      * @return
      */
     public String feedback(Ret r) {
-        
+        String tz = r.db.getString("tz");
+        /**
+         * 清除该特征输出
+                odb = l.getJSONObject(odbs.getString(i));
+                if(odb == null) {// 数据刚刚被清理
+         */
+        /**
+         * 调整该特征输出的参数
+                db.fluentPut("id", newID).fluentPut("req", 1)
+                .fluentPut("state", 0).fluentPut("r", 0).fluentPut("j", 0);
+            ODB_.put(newID, newJL);
+            ODB_puts(tz, newID);
+         */
         repayRate(r.db);
         record(r.db);
         return "";

@@ -100,6 +100,7 @@ public class TestController {
         }
         return IResult.Generator.genSuccessResult("SUCCESS", newJO("nodes", nodes).fluentPut("links", links));
     }
+    
     @ApiOperation(value = "查询已有所有节点和关系线 - 便于更新对比数据结构", notes = "getJG")
     @GetMapping("/jg")
     public IResult<?> getJG(String type) {
